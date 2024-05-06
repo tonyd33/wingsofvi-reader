@@ -1,7 +1,9 @@
 #pragma once
 
 #include <stdio.h>
+#include "dynarr.h"
 
+// start chunk ids {{{
 #define CHUNK_PREVIEW                      4386
 #define CHUNK_APPMINIHEADER                8738
 #define CHUNK_APPHEADER                    8739
@@ -75,6 +77,14 @@
 #define CHUNK_SOUNDS                       26216
 #define CHUNK_MUSICS                       26217
 #define CHUNK_LAST                         32639
+// end chunk ids }}}
+
+// start chunk status codes {{{
+#define CHUNK_ERR_NO_IMPL (-18)
+#define CHUNK_OK 1879
+#define CHUNK_ERR (-17087)
+// end chunk status codes }}}
+
 
 /* handle to chunk */
 typedef struct {
@@ -83,6 +93,8 @@ typedef struct {
     short flags;
     int size;
     void* data;
+    int inflated; // if data has/needs to be decompressed
+    void* chunk_d; // ptr to a definite chunk
 } chunk_h;
 
 /* initializes a chunk. assumes fp is at the start of a chunk. does not
@@ -90,6 +102,6 @@ typedef struct {
 void init_chunk_h(FILE* fp, chunk_h* chunk);
 
 /* loads the data of a chunk */
-// int load_chunk_h(FILE* fp, chunk_h* chunk);
+int load_chunk_h(chunk_h* chunk);
 
 void free_chunk_h(chunk_h* chunk);

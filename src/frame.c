@@ -8,28 +8,41 @@ void init_frame_h(frame_h* frame) {
     init_arr(&frame->chunks, 1);
 }
 
-void load_frame_h(FILE* fp, chunk_h* chunk, frame_h* frame) {
-    long data_start = chunk->fpos + 8;
-    fseek(fp, data_start, SEEK_SET);
+// chunk_h for debugging
+void load_frame_h(FILE* fp, frame_h* frame, chunk_h* outer_chunk) {
+    fseek(fp, 0, SEEK_SET);
 
-    chunk_h* inner_chunk;
+    // initialize the chunks into the array
+    chunk_h* chunk;
     while (1) {
-        inner_chunk = malloc(sizeof(chunk_h));
-        init_chunk_h(fp, inner_chunk);
-        ins_arr(&frame->chunks, inner_chunk);
-        if (inner_chunk->id == CHUNK_FRAMEEVENTS) {
-            printf("flags: 0x%x\n", inner_chunk->flags);
+        chunk = malloc(sizeof(chunk_h));
+        long offset = ftell(fp) + 8; // debugging purpose
+        init_chunk_h(fp, chunk);
+        ins_arr(&frame->chunks, chunk);
+        if (chunk->id == CHUNK_FRAMEEVENTS) {
+            printf("offset: 0x%lx, size: 0x%x, flag: %d, end: 0x%lx\n", offset + outer_chunk->fpos, chunk->size, chunk->flags, offset + chunk->size + outer_chunk->fpos);
         }
-        if (inner_chunk->id == CHUNK_LAST) {
+        if (chunk->id == CHUNK_LAST) {
             break;
         }
+    }
+
+    // actually load them now
+    for (int i = 0; i < frame->chunks.length; i++) {
+        chunk = frame->chunks.items[i];
+        load_chunk_h(chunk);
     }
 }
 
 void free_frame_h(frame_h* frame) {
     for (int i = 0; i < frame->chunks.length; i++) {
+        free_chunk_h(frame->chunks.items[i]);
         free(frame->chunks.items[i]);
         frame->chunks.items[i] = NULL;
     }
     free_arr(&frame->chunks);
+}
+
+void init_frameevent_h(frameevent_h* frameevent) {
+
 }

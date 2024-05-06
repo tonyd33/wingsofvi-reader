@@ -1,4 +1,4 @@
 #pragma once
 #include <stdio.h>
 
-int inflate_chunk(FILE* source, FILE* dest, size_t size);
+int inflate_file(FILE *source, FILE *dest);

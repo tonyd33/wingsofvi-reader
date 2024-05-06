@@ -143,38 +143,33 @@ void read_game_data(FILE* fp) {
     fread(buf, 4, 1, fp); // product_build
 
 
-    dynarr chunks;
+    dynarr app_chunks; // outermost level of chunks
     chunk_h* chunk;
 
-    init_arr(&chunks, 4);
+    init_arr(&app_chunks, 4);
     while (1) {
         chunk = malloc(sizeof(chunk_h));
         init_chunk_h(fp, chunk);
-        ins_arr(&chunks, chunk);
+        ins_arr(&app_chunks, chunk);
+
+        if (chunk->id == CHUNK_FRAME) {
+            printf("frame pos: 0x%lx\n", ftell(fp));
+        }
         if (chunk->id == CHUNK_LAST) {
             break;
         }
     }
 
-    for (int i = 0; i < chunks.length; i++) {
-        chunk = chunks.items[i];
-        switch(chunk->id) {
-            case CHUNK_FRAME:
-                frame_h frame;
-                init_frame_h(&frame);
-                load_frame_h(fp, chunk, &frame);
-                break;
-            default:
-                break;
-        }
+    for (int i = 0; i < app_chunks.length; i++) {
+        load_chunk_h(app_chunks.items[i]);
     }
 
-
-
-    for (int i = 0; i < chunks.length; i++) {
-        free_chunk_h(chunks.items[i]);
+    for (int i = 0; i < app_chunks.length; i++) {
+        free_chunk_h(app_chunks.items[i]);
+        free(app_chunks.items[i]);
+        app_chunks.items[i] = NULL;
     }
-    free_arr(&chunks);
+    free_arr(&app_chunks);
 }
 
 int checkSize(long file_size, long curr, long size) {
@@ -198,7 +193,7 @@ void read_pack_data(FILE* fp) {
     fread(&data_size, 4, 1, fp); // +16
 
     fread(buf, 4, 1, fp); // format_version; +20
-    fread(buf, 4, 2, fp); // dunno; + 28
+    fread(buf, 4, 2, fp); // vsync flag, dunno; + 28
     fread(&count, 4, 1, fp); // count; + 32
 
     long offset = ftell(fp);

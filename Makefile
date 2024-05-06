@@ -1,7 +1,8 @@
 # templated from https://github.com/TheNetAdmin/Makefile-Templates/blob/master/SmallProject/Template/Makefile
 # tool macros
 CC ?= gcc
-SHAREDFLAGS := -lz
+# have to compile 32 bit zlib for this
+SHAREDFLAGS := -m32 -L../zlib -lz
 CFLAGS := $(SHAREDFLAGS) -Wall
 DBGFLAGS := $(SHAREDFLAGS) -g
 COBJFLAGS := $(CFLAGS) -c
