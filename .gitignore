@@ -1,5 +1,3 @@
 *.exe
-bin/
-debug/
-obj/
 *.bin
+build/
