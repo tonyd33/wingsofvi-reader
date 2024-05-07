@@ -152,9 +152,6 @@ void read_game_data(FILE* fp) {
         init_chunk_h(fp, chunk);
         ins_arr(&app_chunks, chunk);
 
-        if (chunk->id == CHUNK_FRAME) {
-            printf("frame pos: 0x%lx\n", ftell(fp));
-        }
         if (chunk->id == CHUNK_LAST) {
             break;
         }

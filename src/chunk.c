@@ -25,30 +25,27 @@ void init_chunk_h(FILE* fp, chunk_h* chunk) {
 }
 
 int inflate_chunk_3(chunk_h* chunk) {
-    FILE* source;
-    FILE* dest;
-    long infl_size;
-    void* new_data;
     int ret;
-
+    int key[KEY_SIZE_DW];
+    char* tmp_data;
+    FILE* source, * dest;
+    void* decompressed_data;
+    int compressed_size, decompressed_size;
     unsigned int hash_before, hash_after;
     int decode_verify_res;
-    int key[KEY_SIZE_DW];
 
     get_decode_key(key);
 
-    char* tmp_data = malloc(chunk->size - 4);
-    int size = chunk->size - 4;
-
     // don't ruin the original data if we mess it up
-    memcpy(tmp_data, (int)chunk->data + 4, chunk->size - 4);
+    tmp_data = malloc(chunk->size);
+    memcpy(tmp_data, chunk->data, chunk->size);
 
     // idk either. see base+0x24fc3 to base+0x24fd7
-    *tmp_data = *tmp_data ^ (char)(chunk->id >> 8) ^ (char)(chunk->id);
+    tmp_data[4] = tmp_data[4] ^ (char)(chunk->id >> 8) ^ (char)(chunk->id);
 
-    hash_before = hash_buf(tmp_data, size);
-    decode_buf(key, tmp_data, size);
-    hash_after = hash_buf(tmp_data, size);
+    hash_before = hash_buf(&tmp_data[4], chunk->size - 4);
+    decode_buf(key, &tmp_data[4], chunk->size - 4);
+    hash_after = hash_buf(&tmp_data[4], chunk->size - 4);
 
 #if VERBOSE_DECODE == 1
     decode_verify_res = verify_decode(hash_before, hash_after);
@@ -68,69 +65,52 @@ int inflate_chunk_3(chunk_h* chunk) {
     }
 #endif
 
-    source = fmemopen((int)tmp_data, compressed_size, "r");
-    dest = tmpfile(); // don't know how big the output is gonna be
+    decompressed_size = *(int*)tmp_data;
+    compressed_size = *(int*)(&tmp_data[4]);
+
+    source = fmemopen(&tmp_data[8], compressed_size, "r");
+    decompressed_data = malloc(decompressed_size);
+    dest = fmemopen(decompressed_data, decompressed_size, "w");
 
     ret = inflate_file(source, dest);
+
     if (ret != Z_OK) {
-        // printf("failed\n");
-        return CHUNK_ERR;
+        ret = CHUNK_ERR;
     } else {
-        printf("success!!!");
+        ret = CHUNK_OK;
+
+        // set new info
+        free(chunk->data);
+        chunk->data = decompressed_data;
+        chunk->size = decompressed_size;
+        chunk->inflated = 1;
     }
 
-    /* infl_size = fsize(dest); */
-    /* chunk->data = realloc(chunk->data, infl_size); */
-    /* fseek(dest, 0, SEEK_SET); */
-    /* fread(chunk->data, infl_size, 1, dest); */
-
-    printf("Orig size: %d, inflated size: %ld", chunk->size, infl_size);
-
+    // cleanup
     fclose(source);
     fclose(dest);
-
-    chunk->inflated = 1;
-
     free(tmp_data);
+
+    return ret;
 }
 
 int inflate_chunk(chunk_h* chunk) {
-    FILE* source;
-    FILE* dest;
-    long infl_size;
-    void* new_data;
     int ret;
+    int decode_start, decode_size;
     if (chunk->inflated) return CHUNK_OK;
 
-    /* this section follows similarly to the logic in base+0x24e60.
-     * the logic _should_ be preserved, just simplified. */
-    if (chunk->flags & 1 == 0) {
+    if (chunk->flags & 0b0001 == 0) {
         return CHUNK_ERR_NO_IMPL;
-    } else if (chunk->flags & 2 == 0) {
+    } else if (chunk->flags & 0b0010 == 0) {
         return CHUNK_ERR_NO_IMPL;
     } else {
+        // debug
+        printf("flags: 0x%x\n", chunk->flags);
+        if (chunk->id != CHUNK_FRAMEEVENTS) return CHUNK_ERR_NO_IMPL;
         ret = inflate_chunk_3(chunk);
     }
 
-    source = fmemopen(chunk->data, chunk->size, "r");
-    dest = tmpfile(); // don't know how big the output is gonna be
-
-    ret = inflate_file(source, dest);
-    if (ret != Z_OK) return CHUNK_ERR;
-
-    infl_size = fsize(dest);
-    chunk->data = realloc(chunk->data, infl_size);
-    fseek(dest, 0, SEEK_SET);
-    fread(chunk->data, infl_size, 1, dest);
-
-    printf("Orig size: %d, inflated size: %ld", chunk->size, infl_size);
-
-    fclose(source);
-    fclose(dest);
-
-    chunk->inflated = 1;
-
-    return CHUNK_OK;
+    return ret;
 }
 
 
