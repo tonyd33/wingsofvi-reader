@@ -18,7 +18,7 @@ FetchContent_MakeAvailable(zlib)
 # for -m32 isn't too bad anyways though
 # target_compile_options(zlib PRIVATE -m32)
 
-add_compile_options(-Wall)
+add_compile_options(-Wall -g)
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} zlib)
 target_include_directories(${PROJECT_NAME}

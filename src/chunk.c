@@ -6,6 +6,9 @@
 #include "dynarr.h"
 #include "frame.h"
 #include "key.h"
+#include "hash.h"
+
+#define VERBOSE_DECODE 0
 
 void init_chunk_h(FILE* fp, chunk_h* chunk) {
     void* buf;
@@ -21,6 +24,76 @@ void init_chunk_h(FILE* fp, chunk_h* chunk) {
     chunk->chunk_d = NULL;
 }
 
+int inflate_chunk_3(chunk_h* chunk) {
+    FILE* source;
+    FILE* dest;
+    long infl_size;
+    void* new_data;
+    int ret;
+
+    unsigned int hash_before, hash_after;
+    int decode_verify_res;
+    int key[KEY_SIZE_DW];
+
+    get_decode_key(key);
+
+    char* tmp_data = malloc(chunk->size - 4);
+    int size = chunk->size - 4;
+
+    // don't ruin the original data if we mess it up
+    memcpy(tmp_data, (int)chunk->data + 4, chunk->size - 4);
+
+    // idk either. see base+0x24fc3 to base+0x24fd7
+    *tmp_data = *tmp_data ^ (char)(chunk->id >> 8) ^ (char)(chunk->id);
+
+    hash_before = hash_buf(tmp_data, size);
+    decode_buf(key, tmp_data, size);
+    hash_after = hash_buf(tmp_data, size);
+
+#if VERBOSE_DECODE == 1
+    decode_verify_res = verify_decode(hash_before, hash_after);
+    switch (decode_verify_res) {
+        case DECODE_OK:
+            printf("Decode successful for chunk id: %d, flags: 0x%x\n", chunk->id, chunk->flags);
+            break;
+        case DECODE_ERR_UNKNOWN:
+            printf("Decode info not found for chunk id: %d, flags: 0x%x\n", chunk->id, chunk->flags);
+            break;
+        case DECODE_ERR_MISMATCH:
+            printf("Decode mismatch chunk id: %d, flags: 0x%x\n", chunk->id, chunk->flags);
+            break;
+        default:
+            printf("Decode unknown error for chunk id: %d\n, flags: 0x%x", chunk->id, chunk->flags);
+            break;
+    }
+#endif
+
+    source = fmemopen((int)tmp_data, compressed_size, "r");
+    dest = tmpfile(); // don't know how big the output is gonna be
+
+    ret = inflate_file(source, dest);
+    if (ret != Z_OK) {
+        // printf("failed\n");
+        return CHUNK_ERR;
+    } else {
+        printf("success!!!");
+    }
+
+    /* infl_size = fsize(dest); */
+    /* chunk->data = realloc(chunk->data, infl_size); */
+    /* fseek(dest, 0, SEEK_SET); */
+    /* fread(chunk->data, infl_size, 1, dest); */
+
+    printf("Orig size: %d, inflated size: %ld", chunk->size, infl_size);
+
+    fclose(source);
+    fclose(dest);
+
+    chunk->inflated = 1;
+
+    free(tmp_data);
+}
+
 int inflate_chunk(chunk_h* chunk) {
     FILE* source;
     FILE* dest;
@@ -29,12 +102,16 @@ int inflate_chunk(chunk_h* chunk) {
     int ret;
     if (chunk->inflated) return CHUNK_OK;
 
-    if (chunk->flags & 1 != 0 && chunk->id == CHUNK_FRAMEEVENTS) {
-        int* decode_key = get_decode_key();
-        decode_buf(decode_key, (unsigned int)chunk->data + 4, chunk->size - 4);
+    /* this section follows similarly to the logic in base+0x24e60.
+     * the logic _should_ be preserved, just simplified. */
+    if (chunk->flags & 1 == 0) {
+        return CHUNK_ERR_NO_IMPL;
+    } else if (chunk->flags & 2 == 0) {
+        return CHUNK_ERR_NO_IMPL;
+    } else {
+        ret = inflate_chunk_3(chunk);
     }
 
-    /*
     source = fmemopen(chunk->data, chunk->size, "r");
     dest = tmpfile(); // don't know how big the output is gonna be
 
@@ -52,7 +129,6 @@ int inflate_chunk(chunk_h* chunk) {
     fclose(dest);
 
     chunk->inflated = 1;
-    */
 
     return CHUNK_OK;
 }
