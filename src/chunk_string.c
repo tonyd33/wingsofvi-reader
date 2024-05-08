@@ -25,9 +25,9 @@ void init_chunk_string_h(FILE* fp, chunk_string_h* chunk_string) {
     fseek(fp, start_pos, SEEK_SET);
     fread(chunk_string->value, size, 1, fp);
 
-    char ascii[(size >> 1) + 1];
-    ascii_wchar_to_char(ascii, chunk_string->value, size);
-    printf("Found chunk string: %s\n", ascii);
+    /* char ascii[(size >> 1) + 1]; */
+    /* ascii_wchar_to_char(ascii, chunk_string->value, size); */
+    /* printf("Found chunk string: %s\n", ascii); */
 }
 
 void free_chunk_string_h(chunk_string_h* chunk_string) {

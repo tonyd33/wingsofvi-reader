@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "zlib.h"
 #include "zlib_util.h"
 #include "futil.h"
@@ -22,15 +23,14 @@
 #define STRICT_DECODE 0
 
 int decode_buf_with_check(void* data, unsigned int size);
-
 int inflate_chunk(chunk_h* chunk);
+int load_chunk_h(chunk_h* chunk);
 
 /* loads a chunk into memory and decodes/inflates it and subchunks if
  * necessary.
  * PRECONDITION: fp points to the start of a chunk
  * POSTCONDITION: fp points right after this chunk */
 void init_chunk_h(FILE* fp, chunk_h* chunk) {
-    void* buf;
     long next;
 
     chunk->fpos = ftell(fp);
@@ -85,10 +85,9 @@ int load_chunk_h(chunk_h* chunk) {
         case CHUNK_FRAMEEVENTS:
             chunk->chunk_d = malloc(sizeof(frameevents_h));
             init_frameevents_h(fp, chunk->chunk_d);
-            char* data = chunk->data;
             break;
         default:
-            // fprintf(stderr, "Load not implemented for chunk id: %d\n", chunk->id);
+            /* fprintf(stderr, "Load not implemented for chunk id: %d\n", chunk->id); */
             break;
     }
     fclose(fp);

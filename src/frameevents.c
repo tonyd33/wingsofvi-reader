@@ -105,7 +105,6 @@ void free_frameevents_h(frameevents_h* frameevents) {
     free_arr(&frameevents->qualifiers);
 }
 
-
 void init_qualifier_h(FILE* fp, qualifier_h* qualifier) {
     fread(&qualifier->object_info, 2, 1, fp);
     fread(&qualifier->type, 2, 1, fp);

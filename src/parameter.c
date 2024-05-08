@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "parameter.h"
 
+#define MAX_STRING_SIZE 256
+
 enum parameter_code {
     PARAM_OBJECT,
     PARAM_TIME,
@@ -13,6 +15,7 @@ enum parameter_code {
     PARAM_KEY,
     PARAM_EXPRESSION,
     PARAM_POS,
+    PARAM_SHOOT,
     PARAM_ZONE,
     PARAM_COLOR,
     PARAM_CLICK,
@@ -95,6 +98,8 @@ int simplify_parameter_code(short code) {
         // position
         case 16:
             return PARAM_POS;
+        case 18:
+            return PARAM_SHOOT;
         // zone
         case 19:
             return PARAM_ZONE;
@@ -141,8 +146,73 @@ int simplify_parameter_code(short code) {
 }
 
 void init_parameter_h(FILE* fp, parameter_h* parameter) {
-    // TODO: Implement
+    long start = ftell(fp);
+    fread(&parameter->size, 2, 1, fp);
+    fread(&parameter->code, 2, 1, fp);
     parameter->parameter_d = NULL;
+
+    switch (simplify_parameter_code(parameter->code)) {
+        // static size params, don't need any processing
+        case PARAM_OBJECT:
+        case PARAM_TIME:
+        case PARAM_SHORT:
+        case PARAM_INT:
+        case PARAM_CREATE:
+        case PARAM_EVERY:
+        case PARAM_POS:
+        case PARAM_ZONE:
+        case PARAM_COLOR:
+        case PARAM_CLICK:
+        case PARAM_COMPARETIME:
+        case PARAM_TWOSHORTS:
+        case PARAM_SHOOT:
+            parameter->parameter_d = malloc(parameter->size);
+            fread(parameter->parameter_d, parameter->size, 1, fp);
+            break;
+        // light processing
+        case PARAM_FILENAME:
+        case PARAM_STRING:
+            parameter->parameter_d = malloc(sizeof(string_h));
+            init_string_h(fp, parameter->parameter_d);
+            break;
+        case PARAM_SAMPLE:
+            parameter->parameter_d = malloc(sizeof(param_sample_h));
+            init_param_sample_h(fp, parameter->parameter_d);
+            break;
+        case PARAM_KEY:
+            break;
+        case PARAM_EXPRESSION:
+            break;
+        case PARAM_PROGRAM:
+            break;
+        case PARAM_REMARK:
+            break;
+        case PARAM_GROUP:
+            break;
+        case PARAM_GROUPPOINTER:
+            break;
+        case PARAM_CHARACTERENCODING:
+            break;
+        case PARAM_UNKNOWN:
+            fprintf(stderr, "Unknown parameter code 0x%x\n", parameter->code);
+            exit(1);
+    }
+
+    // debugging
+    /* printf("=== size: 0x%x, code: 0x%x ===\n", parameter->size, parameter->code); */
+    /* char* buf = malloc(parameter->size); */
+    /* fread(buf, parameter->size, 1, fp); */
+    /* for (int i = 0; i < parameter->size; i++) { */
+        /* printf("%02hhx ", buf[i]); */
+        /* if (((i+1) % 16) == 0) printf("\n"); */
+    /* } */
+    /* printf("\n"); */
+    /* printf("============================\n"); */
+    /* free(buf); */
+    // end debugging
+
+    // safeguard
+    fseek(fp, start + parameter->size, SEEK_SET);
 }
 
 void free_parameter_h(parameter_h* parameter) {
@@ -156,6 +226,8 @@ void free_parameter_h(parameter_h* parameter) {
             case PARAM_SHORT:
                 break;
             case PARAM_INT:
+                break;
+            case PARAM_SHOOT:
                 break;
             case PARAM_SAMPLE:
                 break;
@@ -194,9 +266,50 @@ void free_parameter_h(parameter_h* parameter) {
             case PARAM_CHARACTERENCODING:
                 break;
             case PARAM_UNKNOWN:
-                fprintf(stderr, "Unknown parameter code0x%x\n", parameter->code);
+                fprintf(stderr, "Unknown parameter code 0x%x\n", parameter->code);
                 exit(1);
         }
+        free(parameter->parameter_d);
+        parameter->parameter_d = NULL;
     }
+}
+
+void init_string_h(FILE* fp, string_h* string) {
+    wchar_t curr = 0;
+
+    int size = 0;
+    long start_pos = ftell(fp);
+
+    do {
+        size += 1;
+        fread(&curr, 2, 1, fp);
+    } while (curr != 0 && size < MAX_STRING_SIZE);
+
+    size = ftell(fp) - start_pos;
+    string->value = malloc(size);
+    string->size = size;
+
+
+    fseek(fp, start_pos, SEEK_SET);
+    fread(string->value, size, 1, fp);
+
+    char ascii[(size >> 1) + 1];
+    ascii_wchar_to_char(ascii, string->value, size);
+    printf("Found string: %s (len %d)\n", ascii, size);
+}
+
+void free_string_h(string_h* string) {
+    free(string->value);
+    string->value = NULL;
+}
+
+void init_param_sample_h(FILE* fp, param_sample_h* param_sample) {
+    fread(&param_sample->handle, 2, 1, fp);
+    fread(&param_sample->flags, 2, 1, fp);
+    init_string_h(fp, &param_sample->name);
+}
+
+void free_param_sample_h(param_sample_h* param_sample) {
+    free_string_h(&param_sample->name);
 }
 

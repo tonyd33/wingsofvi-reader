@@ -18,10 +18,8 @@
 // https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN#maximum-path-length-limitation
 #define MAX_PACK_FILENAME_SIZE 260
 
-/*
- * Spec: https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
- * Goes to the .extra section, or the end of the executable section
- */
+/* Spec: https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
+ * Goes to the .extra section, or the end of the executable section */
 void seek_pe_extra(FILE* fp) {
     char buf[8];
     unsigned short num_sections;
@@ -167,7 +165,7 @@ void read_game_data(FILE* fp) {
     free_arr(&app_chunks);
 }
 
-int checkSize(long file_size, long curr, long size) {
+int check_size(long file_size, long curr, long size) {
     return file_size - curr >= size;
 }
 
@@ -176,7 +174,7 @@ void read_pack_data(FILE* fp) {
     int header_size, data_size, count;
     long start = ftell(fp);
     long file_size = fsize(fp);
-    int has_bingo; // dunno what this is
+    int has_bingo; // dunno what this is. suggested by Anaconda
 
     fread(buf, 8, 1, fp); // header
     if (strncmp(buf, PACK_HEADER, 8) != 0) {
@@ -193,17 +191,17 @@ void read_pack_data(FILE* fp) {
 
     long offset = ftell(fp);
     for (int i = 0; i < count; i++) {
-        if (!checkSize(file_size, ftell(fp), 2)) break;
+        if (!check_size(file_size, ftell(fp), 2)) break;
 
         fread(buf, 2, 1, fp);
-        if (!checkSize(file_size, ftell(fp), *(short*)buf)) break;
+        if (!check_size(file_size, ftell(fp), *(short*)buf)) break;
 
         fseek(fp, *(short*)buf, SEEK_CUR);
-        if (!checkSize(file_size, ftell(fp), 4)) break;
+        if (!check_size(file_size, ftell(fp), 4)) break;
 
 
         fread(buf, 4, 1, fp);
-        if (!checkSize(file_size, ftell(fp), *(unsigned int*)buf)) break;
+        if (!check_size(file_size, ftell(fp), *(unsigned int*)buf)) break;
 
         fseek(fp, *(unsigned int*)buf, SEEK_CUR);
     }
