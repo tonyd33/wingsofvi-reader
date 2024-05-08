@@ -20,3 +20,10 @@ void free_arr(dynarr* arr) {
     arr->items = NULL;
     arr->length = arr->_size = 0;
 }
+
+void free_arr_items(dynarr* arr) {
+    for (int i = 0; i < arr->length; i++) {
+        free(arr->items[i]);
+        arr->items[i] = NULL;
+    }
+}

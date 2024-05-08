@@ -91,17 +91,18 @@ typedef struct {
     long fpos;
     short id;
     short flags;
-    int size;
+
     void* data;
-    int inflated; // if data has/needs to be decompressed
+
+    int inflated;  // if data has/needs to be decompressed
+    int size;      // size of data in memory. may differ if inflated.
+    int orig_size; // see above
+
     void* chunk_d; // ptr to a definite chunk
 } chunk_h;
 
-/* initializes a chunk. assumes fp is at the start of a chunk. does not
-   load the data until load_chunk_h is called. */
+/* initializes a chunk. assumes fp is at the start of a chunk. loads the data
+   of subchunks recursively. */
 void init_chunk_h(FILE* fp, chunk_h* chunk);
-
-/* loads the data of a chunk */
-int load_chunk_h(chunk_h* chunk);
 
 void free_chunk_h(chunk_h* chunk);

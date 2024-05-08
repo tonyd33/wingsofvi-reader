@@ -157,9 +157,7 @@ void read_game_data(FILE* fp) {
         }
     }
 
-    for (int i = 0; i < app_chunks.length; i++) {
-        load_chunk_h(app_chunks.items[i]);
-    }
+    // here is where i'd do something interesting with the loaded chunks
 
     for (int i = 0; i < app_chunks.length; i++) {
         free_chunk_h(app_chunks.items[i]);
