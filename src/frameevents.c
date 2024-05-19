@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "frameevents.h"
-#include "parameter.h"
+#include "action.h"
+#include "condition.h"
 #include "futil.h"
 
 void init_frameevents_h(FILE* fp, frameevents_h* frameevents) {
@@ -116,14 +118,14 @@ void init_eventgroup_h(FILE* fp, eventgroup_h* eventgroup) {
     long start = ftell(fp);
     // could just read all of this in at once, but i don't want to rely on the
     // how the struct definition is ordered
-    fread(&eventgroup->size,           2, 1, fp);
+    fread(&eventgroup->size,           2, 1, fp); // 0x0
     eventgroup->size *= -1;
-    fread(&eventgroup->num_conditions, 1, 1, fp);
-    fread(&eventgroup->num_actions,    1, 1, fp);
-    fread(&eventgroup->flags,          2, 1, fp);
-    fread(&eventgroup->field_0x6,      2, 1, fp);
-    fread(&eventgroup->field_0x8,      4, 1, fp);
-    fread(&eventgroup->field_0xc,      4, 1, fp);
+    fread(&eventgroup->num_conditions, 1, 1, fp); // 0x2
+    fread(&eventgroup->num_actions,    1, 1, fp); // 0x3
+    fread(&eventgroup->flags,          2, 1, fp); // 0x4
+    fread(&eventgroup->field_0x6,      2, 1, fp); // 0x6
+    fread(&eventgroup->field_0x8,      4, 1, fp); // 0x8
+    fread(&eventgroup->field_0xc,      4, 1, fp); // 0xc
 
     init_arr(&eventgroup->conditions, eventgroup->num_conditions);
     init_arr(&eventgroup->actions, eventgroup->num_actions);
@@ -173,73 +175,3 @@ void free_eventgroup_h(eventgroup_h* eventgroup) {
     free_arr(&eventgroup->actions);
 }
 
-void init_condition_h(FILE* fp, condition_h* condition) {
-    long start = ftell(fp);
-
-    fread(&condition->size,             2,    1, fp); // 0x2
-    fread(&condition->type_1,           2,    1, fp); // 0x4
-    fread(&condition->type_2,           2,    1, fp); // 0x6
-    fread(&condition->object_info,      2,    1, fp); // 0x8
-    fread(&condition->object_info_list, 2,    1, fp); // 0xa
-    fread(&condition->flags,            1,    1, fp); // 0xb
-    fread(&condition->control_flags,    1,    1, fp); // 0xc
-    fread(&condition->num_params,       1,    1, fp); // 0xd
-    fread(&condition->def_type,         1,    1, fp); // 0xe
-    fread(&condition->id,               2,    1, fp); // 0x10
-
-    parameter_h* parameter;
-    init_arr(&condition->parameters, condition->num_params);
-    for (int i = 0; i < condition->num_params; i++) {
-        parameter = malloc(sizeof(parameter_h));
-        init_parameter_h(fp, parameter);
-        ins_arr(&condition->parameters, parameter);
-    }
-
-    // safeguard
-    fseek(fp, start + condition->size, SEEK_SET);
-}
-
-void free_condition_h(condition_h* condition) {
-    for (int i = 0; i < condition->parameters.length; i++) {
-        parameter_h** parameter = &condition->parameters.items[i];
-        free_parameter_h(*parameter);
-        free(*parameter);
-        *parameter = NULL;
-    }
-    free_arr(&condition->parameters);
-}
-
-void init_action_h(FILE* fp, action_h* action) {
-    long start = ftell(fp);
-
-    fread(&action->size,             2,    1, fp); // 0x2
-    fread(&action->type_1,           2,    1, fp); // 0x4
-    fread(&action->type_2,           2,    1, fp); // 0x6
-    fread(&action->object_info,      2,    1, fp); // 0x8
-    fread(&action->object_info_list, 2,    1, fp); // 0xa
-    fread(&action->flags,            1,    1, fp); // 0xb
-    fread(&action->control_flags,    1,    1, fp); // 0xc
-    fread(&action->num_params,       1,    1, fp); // 0xd
-    fread(&action->def_type,         1,    1, fp); // 0xe
-
-    parameter_h* parameter;
-    init_arr(&action->parameters, action->num_params);
-    for (int i = 0; i < action->num_params; i++) {
-        parameter = malloc(sizeof(parameter_h));
-        init_parameter_h(fp, parameter);
-        ins_arr(&action->parameters, parameter);
-    }
-
-    // safeguard
-    fseek(fp, start + action->size, SEEK_SET);
-}
-
-void free_action_h(action_h* action) {
-    for (int i = 0; i < action->parameters.length; i++) {
-        parameter_h** parameter = &action->parameters.items[i];
-        free_parameter_h(*parameter);
-        free(*parameter);
-        *parameter = NULL;
-    }
-    free_arr(&action->parameters);
-}

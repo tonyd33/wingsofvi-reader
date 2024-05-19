@@ -1,3 +1,4 @@
+#include <string.h>
 #include "key.h"
 
 /* ok, hear me out.

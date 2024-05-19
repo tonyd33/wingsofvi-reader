@@ -1,5 +1,7 @@
 #pragma once
 #include <wchar.h>
+#include "wchar_util.h"
+#include "dynarr.h"
 
 typedef struct {
     short size;
@@ -84,47 +86,33 @@ typedef struct {
 } param_twoshorts_h;
 
 typedef struct {
-    param_pos_h pos;
+    param_pos_h    pos;
     unsigned short object_instance;
     unsigned short object_info;
-    int unknown;
-    short speed;
+    int            unknown;
+    short          speed;
 } param_shoot_h;
 #pragma pack(pop)
 /* end packed definite parameters */
 
-typedef struct {
-    wchar_t* value;
-    int      size;
-} string_h;
-
-void init_string_h(FILE* fp, string_h* string);
-void free_string_h(string_h* string);
-
-typedef string_h param_string_h;
-typedef string_h param_filename_h;
+typedef wstring_h param_string_h;
+typedef wstring_h param_filename_h;
 
 typedef struct {
-    short handle;
+    short          handle;
     unsigned short flags;
-    string_h name;
+    wstring_h      name;
 } param_sample_h;
 
 void init_param_sample_h(FILE* fp, param_sample_h* param_sample);
 void free_param_sample_h(param_sample_h* param_sample);
 
 typedef struct {
-    short comparison;
+    short  comparison;
     dynarr expressions;
 } param_expression_h;
 
 void init_param_expression_h(FILE* fp, param_expression_h* param_expression);
 void free_param_expression_h(param_expression_h* param_expression);
-
-typedef struct {
-    short type_1;
-    short type_2;
-    short size;
-} expression_h;
 
 /* end definite parameters */

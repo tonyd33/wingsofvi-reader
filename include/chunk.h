@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include "dynarr.h"
+#include "wchar_util.h"
 
 // start chunk ids {{{
 #define CHUNK_PREVIEW                      4386
@@ -106,3 +107,8 @@ typedef struct {
 void init_chunk_h(FILE* fp, chunk_h* chunk);
 
 void free_chunk_h(chunk_h* chunk);
+
+typedef wstring_h chunk_string_h;
+
+extern init_wstring_h_func init_chunk_string_h;
+extern free_wstring_h_func free_chunk_string_h;

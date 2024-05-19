@@ -11,15 +11,14 @@
 // begin chunk types
 #include "frame.h"
 #include "frameevents.h"
-#include "chunk_string.h"
 // end chunk types
 
 #define NEEDS_DECODE(var)   CHECK_BIT(var, 1)
 #define NEEDS_INFLATE(var)  CHECK_BIT(var, 0)
 
 /* if nonzero, decoding buffers will only succeed if before and after decode
- * hashes matches those that have been discovered by trying to load many areas
- * of the game, and will output warnings. */
+ * hashes matches those that have been discovered by trying to load areas of
+ * the game, and will output warnings. */
 #define STRICT_DECODE 0
 
 int decode_buf_with_check(void* data, unsigned int size);
@@ -47,13 +46,16 @@ void init_chunk_h(FILE* fp, chunk_h* chunk) {
 
     load_chunk_h(chunk);
 
+    // no longer need this in memory; we've loaded everything needed
+    free(chunk->data);
+    chunk->data = NULL;
+
     // don't rely on load_chunk_h to go to the right offset. we must guarantee
     // we're at the end of the chunk
     // + 8 is for the id, flags and size header
     next = chunk->fpos + chunk->orig_size + 8;
     fseek(fp, next, SEEK_SET);
 }
-
 
 int load_chunk_h(chunk_h* chunk) {
     int ret = 0;
@@ -90,6 +92,7 @@ int load_chunk_h(chunk_h* chunk) {
             /* fprintf(stderr, "Load not implemented for chunk id: %d\n", chunk->id); */
             break;
     }
+
     fclose(fp);
 
     return ret;
@@ -243,3 +246,8 @@ int inflate_chunk(chunk_h* chunk) {
 
     return ret;
 }
+
+init_wstring_h_func init_chunk_string_h = &init_wstring_h;
+
+free_wstring_h_func free_chunk_string_h = &free_wstring_h;
+

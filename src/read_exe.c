@@ -14,8 +14,9 @@
 #define CNCV1_VERSION 0x207
 #define MMF2_PRODUCT_BUILD 0x302
 
-// max file name size on Windows (wchar_t)
-// https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN#maximum-path-length-limitation
+/* max file name size on Windows (wchar_t)
+   https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file?redirectedfrom=MSDN#maximum-path-length-limitation
+ */
 #define MAX_PACK_FILENAME_SIZE 260
 
 /* Spec: https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
@@ -182,12 +183,12 @@ void read_pack_data(FILE* fp) {
         exit(1);
     }
 
-    fread(&header_size, 4, 1, fp); // +12
-    fread(&data_size, 4, 1, fp); // +16
+    fread(&header_size, 4, 1, fp); // 8-12
+    fread(&data_size, 4, 1, fp); // 12-16
 
-    fread(buf, 4, 1, fp); // format_version; +20
-    fread(buf, 4, 2, fp); // vsync flag, dunno; + 28
-    fread(&count, 4, 1, fp); // count; + 32
+    fread(buf, 4, 1, fp); // format_version; 16-20
+    fread(buf, 4, 2, fp); // vsync flag, dunno; 20-28
+    fread(&count, 4, 1, fp); // count; + 28-32
 
     long offset = ftell(fp);
     for (int i = 0; i < count; i++) {

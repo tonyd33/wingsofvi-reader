@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "parameter.h"
-
-#define MAX_STRING_SIZE 256
+#include "wchar_util.h"
 
 enum parameter_code {
     PARAM_OBJECT,
@@ -172,8 +171,8 @@ void init_parameter_h(FILE* fp, parameter_h* parameter) {
         // light processing
         case PARAM_FILENAME:
         case PARAM_STRING:
-            parameter->parameter_d = malloc(sizeof(string_h));
-            init_string_h(fp, parameter->parameter_d);
+            parameter->parameter_d = malloc(sizeof(wstring_h));
+            init_wstring_h(fp, parameter->parameter_d);
             break;
         case PARAM_SAMPLE:
             parameter->parameter_d = malloc(sizeof(param_sample_h));
@@ -199,16 +198,16 @@ void init_parameter_h(FILE* fp, parameter_h* parameter) {
     }
 
     // debugging
-    /* printf("=== size: 0x%x, code: 0x%x ===\n", parameter->size, parameter->code); */
-    /* char* buf = malloc(parameter->size); */
-    /* fread(buf, parameter->size, 1, fp); */
-    /* for (int i = 0; i < parameter->size; i++) { */
-        /* printf("%02hhx ", buf[i]); */
-        /* if (((i+1) % 16) == 0) printf("\n"); */
-    /* } */
-    /* printf("\n"); */
-    /* printf("============================\n"); */
-    /* free(buf); */
+    printf("=== size: %d, code: %d ===\n", parameter->size, parameter->code);
+    char* buf = malloc(parameter->size);
+    fread(buf, parameter->size, 1, fp);
+    for (int i = 0; i < parameter->size; i++) {
+        printf("%02hhx ", buf[i]);
+        if (((i+1) % 16) == 0) printf("\n");
+    }
+    printf("\n");
+    printf("============================\n");
+    free(buf);
     // end debugging
 
     // safeguard
@@ -219,97 +218,58 @@ void free_parameter_h(parameter_h* parameter) {
     // TODO: Implement
     if (parameter->parameter_d != NULL) {
         switch (simplify_parameter_code(parameter->code)) {
-            case PARAM_OBJECT:
-                break;
-            case PARAM_TIME:
-                break;
-            case PARAM_SHORT:
-                break;
-            case PARAM_INT:
-                break;
-            case PARAM_SHOOT:
-                break;
-            case PARAM_SAMPLE:
-                break;
-            case PARAM_CREATE:
-                break;
-            case PARAM_EVERY:
-                break;
-            case PARAM_KEY:
-                break;
-            case PARAM_EXPRESSION:
-                break;
-            case PARAM_POS:
-                break;
-            case PARAM_ZONE:
-                break;
-            case PARAM_COLOR:
-                break;
-            case PARAM_CLICK:
-                break;
-            case PARAM_PROGRAM:
-                break;
-            case PARAM_REMARK:
-                break;
-            case PARAM_GROUP:
-                break;
-            case PARAM_GROUPPOINTER:
-                break;
-            case PARAM_FILENAME:
-                break;
-            case PARAM_STRING:
-                break;
-            case PARAM_COMPARETIME:
-                break;
-            case PARAM_TWOSHORTS:
-                break;
-            case PARAM_CHARACTERENCODING:
-                break;
-            case PARAM_UNKNOWN:
-                fprintf(stderr, "Unknown parameter code 0x%x\n", parameter->code);
-                exit(1);
+        case PARAM_OBJECT:
+        case PARAM_TIME:
+        case PARAM_SHORT:
+        case PARAM_INT:
+        case PARAM_CREATE:
+        case PARAM_EVERY:
+        case PARAM_POS:
+        case PARAM_ZONE:
+        case PARAM_COLOR:
+        case PARAM_CLICK:
+        case PARAM_COMPARETIME:
+        case PARAM_TWOSHORTS:
+        case PARAM_SHOOT:
+            break;
+        // light processing
+        case PARAM_FILENAME:
+        case PARAM_STRING:
+            free_wstring_h(parameter->parameter_d);
+            break;
+        case PARAM_SAMPLE:
+            free_param_sample_h(parameter->parameter_d);
+            break;
+        case PARAM_KEY:
+            break;
+        case PARAM_EXPRESSION:
+            break;
+        case PARAM_PROGRAM:
+            break;
+        case PARAM_REMARK:
+            break;
+        case PARAM_GROUP:
+            break;
+        case PARAM_GROUPPOINTER:
+            break;
+        case PARAM_CHARACTERENCODING:
+            break;
+        case PARAM_UNKNOWN:
+            fprintf(stderr, "Unknown parameter code 0x%x\n", parameter->code);
+            exit(1);
         }
         free(parameter->parameter_d);
         parameter->parameter_d = NULL;
     }
 }
 
-void init_string_h(FILE* fp, string_h* string) {
-    wchar_t curr = 0;
-
-    int size = 0;
-    long start_pos = ftell(fp);
-
-    do {
-        size += 1;
-        fread(&curr, 2, 1, fp);
-    } while (curr != 0 && size < MAX_STRING_SIZE);
-
-    size = ftell(fp) - start_pos;
-    string->value = malloc(size);
-    string->size = size;
-
-
-    fseek(fp, start_pos, SEEK_SET);
-    fread(string->value, size, 1, fp);
-
-    char ascii[(size >> 1) + 1];
-    ascii_wchar_to_char(ascii, string->value, size);
-    printf("Found string: %s (len %d)\n", ascii, size);
-}
-
-void free_string_h(string_h* string) {
-    free(string->value);
-    string->value = NULL;
-}
-
 void init_param_sample_h(FILE* fp, param_sample_h* param_sample) {
     fread(&param_sample->handle, 2, 1, fp);
     fread(&param_sample->flags, 2, 1, fp);
-    init_string_h(fp, &param_sample->name);
+    init_wstring_h(fp, &param_sample->name);
 }
 
 void free_param_sample_h(param_sample_h* param_sample) {
-    free_string_h(&param_sample->name);
+    free_wstring_h(&param_sample->name);
 }
 
